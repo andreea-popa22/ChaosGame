@@ -1,0 +1,618 @@
+---
+title: "The Chaos Game" 
+#runtime: shiny
+author: "Alina Dorneanu & Andreea Popa, Faculty of Mathematics and Informatics"
+date: "January, 2021"
+output: 
+    html_document:
+      toc: true
+      toc_depth: 3 
+---
+```{css, echo = FALSE}
+@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@600&family=Poppins&family=Josefin+Sans:wght@500&family=Ubuntu&display=swap');
+
+body {font-family: 'Poppins', sans-serif; font-size: 15px}
+
+title {font-family: 'Josefin Sans', sans-serif;}
+
+fontsize {font-size: 40px; color:red;}
+
+.sizer {font-size: 20px;}
+
+.cont {
+  max-height: 700px;
+}
+
+```
+
+\
+
+***
+
+\
+
+### **The application** {.tabset}
+
+
+#### **Introduction** 
+
+\
+
+
+For the course of Probabilities and Statistics we had to make a web application using **Rmarkdown** and **Shiny**. 
+You can see below our vision about it and our code, as well as the shiny app. 
+
+\ 
+
+>Shiny is an R package that makes it easy to build interactive web apps straight from **R**. \
+*- see more on [shiny.rstudio.com][1]*
+
+>R Markdown is a file format for making dynamic documents with R. An R Markdown document is written in markdown.\
+*- see more on [rmarkdown.rstudio.com][1]*
+
+\
+
+***
+
+\
+**Theme**
+
+>In mathematics, a fractal is a self-similar subset of Euclidean space whose fractal dimension strictly exceeds its topological dimension. Fractals appear the same at different levels.
+
+
+>As *Wikipedia* says, **The Chaos Game** is a method of creating a fractal, using a polygon and an initial point selected at random inside it. The fractal is created by iteratively creating a sequence of points. 
+
+
+\
+
+You can see a video about it on [Youtube][3]: 
+\
+\
+
+[![Chaos Game](http://i3.ytimg.com/vi/IGlGvSXkRGI/maxresdefault.jpg)](https://www.youtube.com/watch?v=IGlGvSXkRGI&t=96s "Click to see the video")
+
+\
+\
+\
+
+***
+
+\
+In general, the fractal is created by iteratively following some rules:
+
+* *Step 1:* start with an initial random point
+* *Step 2:* chose a vertex at random 
+* *Step 3:* chose a fraction of the distance (the coefficient) between the previous point
+and the chosen vertex.
+* Repeat Step 2 and 3. 
+
+\
+
+
+We implemented The Chaos Game for 4 polygons:  
+
+* **Triangle**: 
+    Using a regular triangle and the factor *or the coefficient*  $\frac{1}{2}$ will result in the known **[Sierpinski triangle][4]**.
+    
+    
+    \
+    \
+    \
+    
+    ![](https://upload.wikimedia.org/wikipedia/commons/b/b6/Sierpinski_Chaos.gif)
+    
+    \
+    \
+    \
+    
+* **Pentagon**: 
+    \
+    \
+    We used the same factor: $\frac{1}{2}$.
+    \
+    \
+
+* **Square**: 
+     If the chaos game is run with a square, and the coefficient is $\frac{1}{2}$, the square will evenly fill with points.
+     \
+     \
+     ![](https://upload.wikimedia.org/wikipedia/commons/a/a8/V4_unrestrict.gif)
+      \
+     \
+     However, to make the fractal possible, we should add one more rule: *the chosen vertex should not be the same as the previous one*.
+     \
+     \
+     ![](https://upload.wikimedia.org/wikipedia/commons/a/a5/V4_ban1.gif)
+     \
+     \
+     
+* **Hexagon**:
+    For the **Sierpinksi Hexagon** or hexaflake, the coefficient is $\frac{2}{3}$.
+    
+     \
+     \
+     <img src = "img1.png">
+      \
+     \
+    
+\
+
+#### **Implementation**
+
+\
+\
+
+We created a basic shiny app that has 3 parts:
+
++ the User Interface
++ the Server part
++ the ShinyApp that combines both the UI and the server.
+
+\
+
+***
+
+\
+
+
+**For the UI**:
+
++ we made a function to print a breakline multiple times.
+```
+linebreaks <- function(n){HTML(strrep(br(), n))}
+
+```
++ used *sidebarLayout()* function to create a layout that contained input in the *sidebarPanel()* for variables such as: the color of the fractal, the number of points and the coefficient. The user can also select the shape of the fractal from the 4 ones.
+
+```
+ sidebarLayout(
+        sidebarPanel(
+            # slider input for the number of drawn points
+            sliderInput(inputId = "points",
+                        label = "Number of points:",
+                        min = 1,
+                        max = 10000,
+                        value = 1000,
+                        sep = ".",
+                        #dragRange = TRUE,
+                        #interval = 0.0001,
+                        #loop = TRUE,
+                        #animate = TRUE
+            ),
+            
+            # slider input for the color of the points
+            selectInput(inputId = "color",
+                        label = "Color of points:",
+                        c("Black" = "black",
+                          "Grey" = "gray61",
+                          "Red" = "indianred3", 
+                          "Blue" = "royalblue3",
+                          "Purple" = "plum",
+                          "Multicolored" = "multi")
+            ),
+            
+            # slider input for the shape of the polygon
+            selectInput(inputId = "shape",
+                        label = "Shape of polygon:",
+                        c("Triangle" = "tri",
+                          "Square" = "sq",
+                          "Pentagon" = "penta",
+                          "Hexagon" = "hex")
+            ),
+            
+            # slider input for the coefficient of the distance between the current point and the next one
+            selectInput(inputId = "coef",
+                        label = "Distance coefficient:",
+                        c("1/2" = "1/2",
+                          "2/3" = "2/3")
+            )
+        ),
+```
+
+
++ The **main panel** contains the disired fractal and that was made using the *plotOutput()* function.
+
+```
+ mainPanel(
+            plotOutput("distPlot")
+        )
+```
+
+\
+
+***
+
+\
+
+**For the server**:
+
++ we used *renderPlot()* function to render the reactive plot that was assigned to an output slot.
+
++ for each polygon, we set the coordinates from the initial figure, 
+taking into account some mathematical conventions. 
+
+```
+a <- c(0, 400, 800) 
+b <- c(0, 800, 0)
+```
++ with the *par()* function we set the margins of the plot.
+
+```
+par(mar = rep(0, 4))
+```
+
++ we created the plot with the first 3, 4, 5 or 6 points (vertices) using the basic *plot()* function.
+
+```
+plot(a, b, col= "red", pch = 15, cex = 1, axes = FALSE)
+```
++ we chose the random point that is represented by two coordinates **x and y**.
+
+```
+x <- sample(0:800, 1)
+y <- sample(0:800, 1)
+```
+
++ for chosing a vertex, we used the *sample()* function.
+
+```
+vertex <- sample(1:3, 1)
+```
+
++ we repeted the process explained above, as many times as the number of points the user selected.
+
+
++ after finding out the coordinates of the new point, we use the *points()* function to plot the new point.
+
+```
+points(x, y, pch = 16, col = input$color, cex = 0.5)
+```
+
+\
+
+\
+\
+
+
+#### **Code** 
+
+\
+\
+
+```{r chunk-label, fig.show='animate', ffmpeg.format='gif', dev='jpeg', class.source="cont"}
+library(shiny)
+library(randomcoloR)
+
+linebreaks <- function(n){HTML(strrep(br(), n))}
+
+# Define UI for application 
+ui <- fluidPage(
+    
+    tags$head(tags$link(rel="shortcut icon", href="favicon.ico")),
+    
+    # Application title
+    h1("THE CHAOS GAME", align = "center"),
+    
+    linebreaks(2),
+ 
+    
+    tags$div(
+        HTML(paste(
+            tags$h4("You can play with the number of points below: the more points you select, the clearer the fractal will appear."),
+            sep = " "
+            
+        )
+        )
+    ),
+    
+    linebreaks(1),
+    
+    sidebarLayout(
+        sidebarPanel(
+            # slider input for the number of drawn points
+            sliderInput(inputId = "points",
+                        label = "Number of points:",
+                        min = 1,
+                        max = 10000,
+                        value = 1000,
+                        sep = ".",
+                        #dragRange = TRUE,
+                        #interval = 0.0001,
+                        #loop = TRUE,
+                        #animate = TRUE
+            ),
+            
+            # slider input for the color of the points
+            selectInput(inputId = "color",
+                        label = "Color of points:",
+                        c("Black" = "black",
+                          "Grey" = "gray61",
+                          "Red" = "indianred3", 
+                          "Blue" = "royalblue3",
+                          "Purple" = "plum",
+                          "Multicolored" = "multi")
+            ),
+            
+            # slider input for the shape of the polygon
+            selectInput(inputId = "shape",
+                        label = "Shape of polygon:",
+                        c("Triangle" = "tri",
+                          "Square" = "sq",
+                          "Pentagon" = "penta",
+                          "Hexagon" = "hex")
+            ),
+            
+            # slider input for the coefficient of the distance between the current point and the next one
+            selectInput(inputId = "coef",
+                        label = "Distance coefficient:",
+                        c("1/2" = "1/2",
+                        "2/3" = "2/3")
+            )
+        ),
+        
+        # Show a plot of the generated distribution
+        mainPanel(
+            plotOutput("distPlot")
+        )
+    )
+)
+
+# Define server logic required 
+
+server <- function(input, output) {
+    
+    output$distPlot <- renderPlot({
+        # the shape is chosen by the user
+        shape = input$shape
+        
+        # the distance coefficient is chosen by the user
+        # we manipulate its value from string to float
+        coef = input$coef
+        numerator = strsplit(coef, "/")[[1]][1]
+        denominator = strsplit(coef, "/")[[1]][2]
+        coef = as.integer(numerator) / as.integer(denominator)
+        
+        if (shape == "tri"){
+            # Triangle coordinates
+            a <- c(0, 400, 800) 
+            b <- c(0, 800, 0)
+            
+            
+            par(mar = rep(0, 4))
+            # We draw the coordinates 
+            plot(a, b, col= "red", pch = 15, cex = 1, axes = FALSE)
+            
+            # Random starting point
+            x <- sample(0:800, 1)
+            y <- sample(0:800, 1)
+            
+            # Chaos game
+            # Number of points to be drawn
+            pct <- input$points
+            for (i in 1:pct) {
+                
+                # We take a vertex of the triangle at random
+                vertex <- sample(1:3, 1)
+                
+                # We calculate the coordinates of the next point
+                x <- floor(x + (a[vertex] - x) * coef)
+                y <- floor(y + (b[vertex] - y) * coef)
+                
+                # We add it in the plot
+                
+                if (input$color == "multi")
+                {
+                   color <- randomColor(count = 1, hue = c(" ", "random", "red", "orange", "yellow",
+                                  "green", "blue", "purple", "pink", "monochrome"), luminosity = c(" ",
+                                  "random", "light", "bright", "dark"))
+                   
+                   points(x, y, pch = 16, col = color, cex = 0.5)
+                
+                }
+                else
+                {
+                    points(x, y, pch = 16, col = input$color, cex = 0.5)
+                }
+                
+            }
+        }
+        else
+            if (shape == "sq"){
+                # Square coordinates
+                a <- c(0, 0, 1000, 1000)
+                b <- c(0, 1000, 1000, 0)
+                
+                par(mar = rep(0, 4))
+                # We draw the coordinates
+                plot(a, b, col = "red", pch = 15, cex = 1, axes = FALSE)
+                
+                # Random starting point
+                x <- sample(0:1000, 1)
+                y <- sample(0:1000, 1)
+                
+                aux = 0 # auxiliary variable to help us check if the previous vertex is the same with the current one
+                
+                # Chaos game
+                # Number of points to be drawn
+                pct <- input$points
+                for (i in 1:pct) {
+                    # We take a vertex of the square at random
+                    vertex <- sample(1:4, 1)
+                    
+                    # We start the test from the second point
+                    if(i != 1)
+                    {
+                        # We take a new vertex until it differs from the previous one
+                        while(aux == vertex)
+                        {
+                            vertex <- sample(1:4, 1)
+                        }
+                    }
+                    
+                    # We update the previous vertex
+                    aux = vertex
+                    
+                    # We calculate the coordinates of the next point
+                    x <- floor(x + (a[vertex] - x) * coef)
+                    y <- floor(y + (b[vertex] - y) * coef)
+                    
+                    # We add it in the plot
+                    if (input$color == "multi")
+                    {
+                        color <- randomColor(count = 1, hue = c(" ", "random", "red", "orange", "yellow",
+                                  "green", "blue", "purple", "pink", "monochrome"), luminosity = c(" ",
+                                  "random", "light", "bright", "dark"))
+                   
+                        points(x, y, pch = 16, col = color, cex = 0.5)
+                    }
+                    else
+                    {
+                        points(x, y, pch = 16, col = input$color, cex = 0.5)
+                    }
+                    
+                }
+            }
+        
+        else 
+            if (shape == "penta"){
+                # Pentagon coordinates
+                    a <- c(550, 455, 491, 609, 645)
+                    b <- c(450, 519, 631, 631, 519)
+                    
+                    par(mar = rep(0, 4))
+                    # We draw the coordinates
+                    plot(a, b, col= "red", pch = 15, cex = 1, axes = FALSE)
+                    
+                    # Random starting point
+                    x <- sample(0:645, 1)
+                    y <- sample(0:631, 1)
+                    
+                    # Chaos game
+                    # Number of points to be drawn
+                    pct <- input$points
+                    
+                    aux = 0
+                    
+                    for (i in 1:pct) {
+                        
+                        # We take a vertex of the hexagon at random
+                        vertex <- sample(1:5, 1)
+                       
+                        if(i != 1)
+                        {
+                            # We take a new vertex until it differs from the previous one
+                            while(aux == vertex)
+                            {
+                                vertex <- sample(1:5, 1)
+                            }
+                        }
+                        
+                        aux = vertex
+                        
+                        # We calculate the coordinates of the next point
+                        x <- floor(x + (a[vertex] - x) * coef)
+                        y <- floor(y + (b[vertex] - y) * coef)
+                        
+                        # We add it in the plot
+                        if (input$color == "multi")
+                        {
+                            color <- randomColor(count = 1, hue = c(" ", "random", "red", "orange", "yellow",
+                                      "green", "blue", "purple", "pink", "monochrome"), luminosity = c(" ",
+                                      "random", "light", "bright", "dark"))
+                       
+                            points(x, y, pch = 16, col = color, cex = 0.5)
+                        }
+                        
+                        else
+                        {
+                            points(x, y, pch = 16, col = input$color, cex = 0.5)
+                        }
+                    }
+                
+                
+            }
+            else
+                if (shape == "hex"){
+                    # Hexagon coordinates
+                    a <- c(500, 1500, 2000,1500,500,0)
+                    b <- c(0, 0, 866.025,1732.05,1732.05,866.025)
+                    
+                    par(mar = rep(0, 4))
+                    # We draw the coordinates
+                    plot(a, b, col= "red", pch = 15, cex = 1, axes = FALSE)
+                    
+                    # Random starting point
+                    x <- sample(0:1000, 1)
+                    y <- sample(0:1000, 1)
+                    
+                    # Chaos game
+                    # Number of points to be drawn
+                    pct <- input$points
+                    for (i in 1:pct) {
+                        
+                        # We take a vertex of the hexagon at random
+                        vertex <- sample(1:6, 1)
+                        
+                        # We calculate the coordinates of the next point
+                        x <- floor(x + (a[vertex] - x) * coef)
+                        y <- floor(y + (b[vertex] - y) * coef)
+                        
+                        # We add it in the plot
+                        if (input$color == "multi")
+                        {
+                            color <- randomColor(count = 1, hue = c(" ", "random", "red", "orange", "yellow",
+                                      "green", "blue", "purple", "pink", "monochrome"), luminosity = c(" ",
+                                      "random", "light", "bright", "dark"))
+                       
+                            points(x, y, pch = 16, col = color, cex = 0.5)
+                        }
+                        else
+                        {
+                            points(x, y, pch = 16, col = input$color, cex = 0.5)
+                        }
+                    }
+                }
+        
+    })
+}
+
+# Run the application 
+shinyApp(ui = ui, server = server)
+```
+\ 
+
+\
+
+### **References** 
+
+1. http://math.bu.edu/DYSYS/chaos-game/chaos-game.html
+\
+2. https://datascienceplus.com/wp-content/uploads/2017/10/How-to-start-with-ShinyR.pdf
+\
+3. https://shiny.rstudio.com/articles/sliders.html
+\
+4. https://rmarkdown.rstudio.com/lesson-1.html
+\
+5. https://shiny.rstudio.com/reference/shiny/latest/plotOutput.html
+\
+6. https://scratch.mit.edu/studios/3676382/
+\
+7. https://en.wikipedia.org/wiki/Chaos_game
+\
+8. https://bentrubewriter.com/2012/06/14/post-100-fractal-fairy-tales/
+\
+9. https://en.wikipedia.org/wiki/Fractal
+\
+\
+\
+\
+
+
+[1]: https://shiny.rstudio.com/
+[2]: https://rmarkdown.rstudio.com/
+[3]: https://www.youtube.com/watch?v=IGlGvSXkRGI&t=96s
+[4]: https://en.wikipedia.org/wiki/Sierpi%C5%84ski_triangle
+
+
+
+
